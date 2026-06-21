@@ -70,7 +70,6 @@ db.getConnection((err, connection) => {
         if (err) console.error('Gagal membuat tabel orders:', err);
         else console.log('Tabel orders cloud siap digunakan!');
     });
-});
 
 
 db.connect((err) => {
