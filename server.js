@@ -92,9 +92,11 @@ app.use(express.urlencoded({ extended: true }));
 
 const configPath = path.join(__dirname, 'config.json');
 function getClientConfig() {
-    // Menghapus 'src' karena file config.json berada langsung di folder root
-    const configPath = path.join(process.cwd(), 'config.json');
-    return JSON.parse(fs.readFileSync(configPath, 'utf8'));
+    // Menghapus cache agar perubahan config.json langsung terbaca realtime
+    delete require.cache[require.resolve('./config.json')];
+    return require('./config.json');
+}
+
 
 // 4. RUTE HALAMAN UTAMA (KATALOG DARI DATABASE MYSQL)
 app.get('/', (req, res) => {
