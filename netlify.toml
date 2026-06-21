@@ -8,4 +8,5 @@
   status = 200
 
 [functions]
-  included_files = ["src/config.json"]
+  included_files = ["config.json"]
+

@@ -92,10 +92,9 @@ app.use(express.urlencoded({ extended: true }));
 
 const configPath = path.join(__dirname, 'config.json');
 function getClientConfig() {
-    // Menggunakan path.join dan process.cwd() agar Netlify tepat menemukan lokasinya
-    const configPath = path.join(process.cwd(), 'src', 'config.json');
+    // Menghapus 'src' karena file config.json berada langsung di folder root
+    const configPath = path.join(process.cwd(), 'config.json');
     return JSON.parse(fs.readFileSync(configPath, 'utf8'));
-}
 
 // 4. RUTE HALAMAN UTAMA (KATALOG DARI DATABASE MYSQL)
 app.get('/', (req, res) => {
