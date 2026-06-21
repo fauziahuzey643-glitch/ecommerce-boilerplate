@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>
+        <%= config.clientName %> - Katalog Resmi
+    </title>
+    <style>
+        :root {
+            --primary: <%=config.primaryColor %>;
+            --secondary: <%=config.secondaryColor %>;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            background: #f4f4f4;
+        }
+
+        header {
+            background: var(--primary);
+            color: white;
+            padding: 15px 30px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        header img {
+            height: 50px;
+            width: auto;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 30px auto;
+            padding: 0 20px;
+        }
+
+        .product-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .product-card {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        .product-card img {
+            max-width: 100%;
+            height: 200px;
+            object-fit: cover;
+            border-radius: 5px;
+        }
+
+        .product-card h3 {
+            margin: 15px 0 10px;
+            font-size: 18px;
+        }
+
+        .product-card p {
+            color: var(--secondary);
+            font-weight: bold;
+            margin: 0 0 15px;
+        }
+
+        .btn-buy {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            width: 100%;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <!-- Logo otomatis memuat dari config.json -->
+        <img src="<%= config.clientLogo %>" alt="Logo <%= config.clientName %>">
+        <nav>
+            <!-- Tombol Login Admin sudah dihapus secara visual agar rahasia -->
+            <a href="#" style="color:white; text-decoration:none; font-weight:bold;">Beranda</a>
+        </nav>
+    </header>
+
+
+    <div class="container">
+        <h2>Katalog Produk Pilihan</h2>
+        <div class="product-grid">
+            <% products.forEach(product=> { %>
+                <div class="product-card">
+                    <img src="<%= product.image %>" alt="<%= product.name %>">
+                    <h3>
+                        <%= product.name %>
+                    </h3>
+                    <p>Rp <%= product.price.toLocaleString('id-ID') %>
+                    </p>
+
+                    <% let pesanWA=`Halo ${config.clientName}, saya ingin membeli produk ini:\n\n*Nama*:
+                        ${product.name}\n*Harga*: Rp ${product.price.toLocaleString('id-ID')}`; let
+                        urlWA=`https://whatsapp.com{config.clientWhatsApp}&text=${encodeURIComponent(pesanWA)}`; %>
+                        <!-- Kita gunakan onclick untuk memicu fungsi rekam database sebelum lompat ke WA -->
+                        <a href="<%= urlWA %>" target="_blank" class="btn-buy"
+                            onclick="rekamPesanan('<%= product.name %>', '<%= product.price %>')"
+                            style="display: block; text-decoration: none; box-sizing: border-box;">Beli via WhatsApp</a>
+                </div>
+                <% }) %>
+        </div>
+
+        <script>
+            function rekamPesanan(name, price) {
+                fetch('/order/record', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, price })
+                });
+            }
+        </script>
+
+
+    </div>
+
+</body>
+
+</html>

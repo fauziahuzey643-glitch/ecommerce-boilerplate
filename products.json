@@ -1,0 +1,20 @@
+[
+  {
+    "id": 1,
+    "name": "Kemeja Casual Premium",
+    "price": 150000,
+    "image": "https://placehold.co"
+  },
+  {
+    "id": 2,
+    "name": "Sepatu Sneakers Kulit",
+    "price": 350000,
+    "image": "https://placehold.co"
+  },
+  {
+    "id": 3,
+    "name": "Celana Chino Slimfit",
+    "price": 180000,
+    "image": "https://placehold.co"
+  }
+]

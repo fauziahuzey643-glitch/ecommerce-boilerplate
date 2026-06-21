@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard Admin - <%= config.clientName %>
+    </title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            display: flex;
+            background: #f4f4f4;
+        }
+
+        .sidebar {
+            width: 250px;
+            background: <%=config.primaryColor %>;
+            color: white;
+            height: 100vh;
+            padding: 20px;
+            box-sizing: border-box;
+            position: fixed;
+        }
+
+        .sidebar h2 {
+            margin-bottom: 30px;
+            font-size: 20px;
+        }
+
+        .sidebar a {
+            color: white;
+            text-decoration: none;
+            display: block;
+            padding: 10px 0;
+            font-weight: bold;
+        }
+
+        .main-content {
+            flex: 1;
+            padding: 30px;
+            margin-left: 250px;
+        }
+
+        .form-box {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+            margin-bottom: 30px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 8px;
+            box-sizing: border-box;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        .btn-submit {
+            background: <%=config.primaryColor %>;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        table {
+            width: 100%;
+            background: white;
+            border-collapse: collapse;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+        }
+
+        th,
+        td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        th {
+            background: #eee;
+        }
+
+        .btn-logout {
+            background: #e74c3c;
+            color: white;
+            padding: 8px 15px;
+            text-decoration: none;
+            border-radius: 4px;
+            font-weight: bold;
+            float: right;
+        }
+
+        .btn-delete {
+            background: #e74c3c;
+            color: white;
+            padding: 5px 10px;
+            text-decoration: none;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="sidebar">
+        <h2>
+            <%= config.clientName %>
+        </h2>
+        <p>Halo, Administrator</p>
+        <hr>
+        <a href="/admin">📦 Kelola Produk</a>
+        <a href="/" target="_blank">🌐 Lihat Toko</a>
+        <a href="/logout" style="color: #ff9f9f; margin-top: 50px; display: block;">🚪 Keluar</a>
+    </div>
+
+    <div class="main-content">
+        <a href="/logout" class="btn-logout">Logout</a>
+        <h2>Dashboard Manajemen Produk</h2>
+
+        <!-- Form Tambah Produk -->
+        <div class="form-box">
+            <h3>➕ Tambah Produk Baru</h3>
+            <form action="/admin/add" method="POST" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label>Nama Produk</label>
+                    <input type="text" name="name" required placeholder="Contoh: Jaket Hoodie Varsity">
+                </div>
+                <div class="form-group">
+                    <label>Harga (Rupiah)</label>
+                    <input type="number" name="price" required placeholder="Contoh: 120000">
+                </div>
+                <div class="form-group">
+                    <label>Upload Gambar Produk</label>
+                    <input type="file" name="image" required accept="image/*">
+                </div>
+                <button type="submit" class="btn-submit">Simpan Produk</button>
+            </form>
+        </div>
+
+        <!-- Tabel Daftar Produk -->
+        <h3>📦 Daftar Produk Aktif</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Gambar</th>
+                    <th>Nama Produk</th>
+                    <th>Harga</th>
+                    <th>Aksi</th>
+                </tr>
+            </thead>
+            <tbody>
+                <% products.forEach(product=> { %>
+                    <tr>
+                        <td><img src="<%= product.image %>" width="50" height="50"
+                                style="object-fit:cover; border-radius:4px;"></td>
+                        <td><strong>
+                                <%= product.name %>
+                            </strong></td>
+                        <td>Rp <%= product.price.toLocaleString('id-ID') %>
+                        </td>
+                        <td>
+                            <a href="/admin/edit/<%= product.id %>"
+                                style="background: #f1c40f; color: black; padding: 5px 10px; text-decoration: none; border-radius: 4px; font-size: 14px; margin-right: 5px; font-weight: bold;">Edit</a>
+                            <a href="/admin/delete/<%= product.id %>" class="btn-delete"
+                                onclick="return confirm('Hapus produk ini?')">Hapus</a>
+                        </td>
+                    </tr>
+                    <% }) %>
+            </tbody>
+        </table>
+        <!-- Tabel Riwayat Pesanan -->
+        <h3 style="margin-top: 50px;">📋 Rekap Klik Pesanan Masuk (WhatsApp)</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Waktu Keluar</th>
+                    <th>Nama Produk</th>
+                    <th>Harga Tertera</th>
+                </tr>
+            </thead>
+            <tbody>
+                <% orders.forEach(order=> { %>
+                    <tr>
+                        <td>
+                            <%= new Date(order.created_at).toLocaleString('id-ID') %>
+                        </td>
+                        <td><span style="color: #27ae60; font-weight: bold;">
+                                <%= order.product_name %>
+                            </span></td>
+                        <td>Rp <%= order.price.toLocaleString('id-ID') %>
+                        </td>
+                    </tr>
+                    <% }) %>
+            </tbody>
+        </table>
+
+    </div>
+
+</body>
+
+</html>
