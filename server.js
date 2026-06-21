@@ -7,13 +7,54 @@ const mysql = require('mysql2');
 
 const app = express();
 
-// 1. KONEKSI DATABASE MYSQL
+// 1. KONEKSI DATABASE MYSQL CLOUD (AIVEN)
 const db = mysql.createConnection({
-    host: 'localhost',
-    user: 'root',      // Akun bawaan XAMPP
-    password: '',      // Password bawaan XAMPP kosong
-    database: 'db_ecommerce_boilerplate'
+    host: '://aivencloud.com',
+    port: 20587,
+    user: 'avnadmin',
+    password: 'MASUKKAN_PASSWORD_ASLI_AIVEN_ANDA_DI_SINI',
+    database: 'defaultdb',
+    ssl: {
+        rejectUnauthorized: false
+    }
 });
+
+db.connect((err) => {
+    if (err) {
+        console.error('Koneksi MySQL Cloud Gagal: ' + err.stack);
+        return;
+    }
+    console.log('Koneksi Database MySQL Cloud Berhasil!');
+
+    // OTOMATIS MEMBUAT TABEL PRODUCTS JIKA BELUM ADA DI CLOUD
+    const sqlProducts = `
+        CREATE TABLE IF NOT EXISTS products (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            name VARCHAR(255) NOT NULL,
+            price INT NOT NULL,
+            image VARCHAR(255) NOT NULL
+        );
+    `;
+    db.query(sqlProducts, (err) => {
+        if (err) console.error('Gagal membuat tabel products:', err);
+        else console.log('Tabel products cloud siap digunakan!');
+    });
+
+    // OTOMATIS MEMBUAT TABEL ORDERS JIKA BELUM ADA DI CLOUD
+    const sqlOrders = `
+        CREATE TABLE IF NOT EXISTS orders (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            product_name VARCHAR(255) NOT NULL,
+            price INT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+    `;
+    db.query(sqlOrders, (err) => {
+        if (err) console.error('Gagal membuat tabel orders:', err);
+        else console.log('Tabel orders cloud siap digunakan!');
+    });
+});
+
 
 db.connect((err) => {
     if (err) {
@@ -57,7 +98,7 @@ function getClientConfig() {
 // 4. RUTE HALAMAN UTAMA (KATALOG DARI DATABASE MYSQL)
 app.get('/', (req, res) => {
     const config = getClientConfig();
-    
+
     db.query('SELECT * FROM products', (err, results) => {
         if (err) throw err;
         res.render('index', { config, products: results });
@@ -85,11 +126,11 @@ app.post('/login', (req, res) => {
 app.get('/admin', (req, res) => {
     if (!req.session.isAdmin) return res.redirect('/login');
     const config = getClientConfig();
-    
+
     // Ambil data produk
     db.query('SELECT * FROM products', (err, products) => {
         if (err) throw err;
-        
+
         // Ambil data pesanan terbaru
         db.query('SELECT * FROM orders ORDER BY created_at DESC', (err, orders) => {
             if (err) throw err;
@@ -103,7 +144,7 @@ app.get('/admin', (req, res) => {
 app.post('/admin/add', upload.single('image'), (req, res) => {
     if (!req.session.isAdmin) return res.sendStatus(403);
     const { name, price } = req.body;
-    
+
     // Path gambar yang disimpan ke database agar bisa dimuat browser
     const imagePath = req.file ? '/uploads/' + req.file.filename : '/d.jpg';
 
@@ -125,7 +166,7 @@ app.get('/admin/delete/:id', (req, res) => {
         if (err) throw err;
         if (results.length > 0) {
             const fileGambar = results[0].image;
-            if(fileGambar !== '/d.jpg') {
+            if (fileGambar !== '/d.jpg') {
                 const fullPath = path.join(__dirname, 'public', fileGambar);
                 if (fs.existsSync(fullPath)) fs.unlinkSync(fullPath);
             }
