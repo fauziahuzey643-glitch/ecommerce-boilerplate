@@ -12,7 +12,7 @@ const db = mysql.createPool({
     host: '://aivencloud.com',
     port: 20587,
     user: 'avnadmin',
-    password: 'MASUKKAN_PASSWORD_ASLI_AIVEN_ANDA_DI_SINI', // <--- Pastikan diisi dengan password asli Aiven Anda
+    password: 'MASUKKAN_PASSWORD_ASLI_AIVEN_ANDA', // <--- Ganti dengan password Aiven Anda
     database: 'defaultdb',
     ssl: {
         rejectUnauthorized: false
@@ -22,7 +22,7 @@ const db = mysql.createPool({
     queueLimit: 0
 });
 
-// Pemicu otomatis untuk mengecek koneksi dan membuat tabel saat serverless aktif
+// Pemicu otomatis membuat tabel saat serverless aktif
 db.getConnection((err, connection) => {
     if (err) {
         console.error('Koneksi MySQL Cloud Gagal: ' + err.stack);
@@ -52,41 +52,16 @@ db.getConnection((err, connection) => {
     `;
     connection.query(sqlOrders, (err) => {
         if (err) console.error('Gagal membuat tabel orders:', err);
-        connection.release(); // Melepas kembali koneksi ke pool setelah selesai
+        connection.release(); // Melepas kembali koneksi ke pool
     });
-});
-
-
-    // OTOMATIS MEMBUAT TABEL ORDERS JIKA BELUM ADA DI CLOUD
-    const sqlOrders = `
-        CREATE TABLE IF NOT EXISTS orders (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            product_name VARCHAR(255) NOT NULL,
-            price INT NOT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        );
-    `;
-    db.query(sqlOrders, (err) => {
-        if (err) console.error('Gagal membuat tabel orders:', err);
-        else console.log('Tabel orders cloud siap digunakan!');
-    });
-
-
-db.connect((err) => {
-    if (err) {
-        console.error('Koneksi MySQL Gagal: ' + err.stack);
-        return;
-    }
-    console.log('Koneksi Database MySQL Berhasil!');
 });
 
 // 2. KONFIGURASI MULTER (UNTUK UPLOAD GAMBAR)
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        cb(null, 'public/uploads/'); // File disimpan di folder public/uploads
+        cb(null, 'public/uploads/');
     },
     filename: (req, file, cb) => {
-        // Mengubah nama file menjadi unik menggunakan waktu agar tidak bentrok
         cb(null, Date.now() + path.extname(file.originalname));
     }
 });
@@ -106,18 +81,14 @@ app.use(express.static('public'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-const configPath = path.join(__dirname, 'config.json');
 function getClientConfig() {
-    // Menghapus cache agar perubahan config.json langsung terbaca realtime
     delete require.cache[require.resolve('./config.json')];
     return require('./config.json');
 }
 
-
-// 4. RUTE HALAMAN UTAMA (KATALOG DARI DATABASE MYSQL)
+// 4. RUTE HALAMAN UTAMA (KATALOG)
 app.get('/', (req, res) => {
     const config = getClientConfig();
-
     db.query('SELECT * FROM products', (err, results) => {
         if (err) throw err;
         res.render('index', { config, products: results });
@@ -141,16 +112,13 @@ app.post('/login', (req, res) => {
     }
 });
 
-// 6. DASHBOARD ADMIN (AMBIL DATA DARI MYSQL)
+// 6. DASHBOARD ADMIN
 app.get('/admin', (req, res) => {
     if (!req.session.isAdmin) return res.redirect('/login');
     const config = getClientConfig();
-
-    // Ambil data produk
+    
     db.query('SELECT * FROM products', (err, products) => {
         if (err) throw err;
-
-        // Ambil data pesanan terbaru
         db.query('SELECT * FROM orders ORDER BY created_at DESC', (err, orders) => {
             if (err) throw err;
             res.render('admin', { config, products, orders });
@@ -158,48 +126,20 @@ app.get('/admin', (req, res) => {
     });
 });
 
-
-// 7. PROSES TAMBAH PRODUK BARU DENGAN UPLOAD GAMBAR (SIMPAN KE MYSQL)
+// 7. TAMBAH PRODUK BARU
 app.post('/admin/add', upload.single('image'), (req, res) => {
     if (!req.session.isAdmin) return res.sendStatus(403);
     const { name, price } = req.body;
-
-    // Path gambar yang disimpan ke database agar bisa dimuat browser
     const imagePath = req.file ? '/uploads/' + req.file.filename : '/d.jpg';
 
     const sql = 'INSERT INTO products (name, price, image) VALUES (?, ?, ?)';
     db.query(sql, [name, parseInt(price) || 0, imagePath], (err, result) => {
         if (err) throw err;
-        console.log('Produk baru berhasil disimpan ke MySQL!');
         res.redirect('/admin');
     });
 });
 
-// 8. PROSES HAPUS PRODUK DAN MENGHAPUS FILE GAMBAR FISIKNYA
-app.get('/admin/delete/:id', (req, res) => {
-    if (!req.session.isAdmin) return res.sendStatus(403);
-    const id = req.params.id;
-
-    // Ambil info gambar untuk dihapus dari folder laptop Anda
-    db.query('SELECT image FROM products WHERE id = ?', [id], (err, results) => {
-        if (err) throw err;
-        if (results.length > 0) {
-            const fileGambar = results[0].image;
-            if (fileGambar !== '/d.jpg') {
-                const fullPath = path.join(__dirname, 'public', fileGambar);
-                if (fs.existsSync(fullPath)) fs.unlinkSync(fullPath);
-            }
-        }
-
-        // Hapus baris data dari database MySQL
-        db.query('DELETE FROM products WHERE id = ?', [id], (err, result) => {
-            if (err) throw err;
-            res.redirect('/admin');
-        });
-    });
-});
-
-// A. HALAMAN FORM EDIT PRODUK (GET)
+// 8. HALAMAN EDIT PRODUK
 app.get('/admin/edit/:id', (req, res) => {
     if (!req.session.isAdmin) return res.redirect('/login');
     const config = getClientConfig();
@@ -212,7 +152,6 @@ app.get('/admin/edit/:id', (req, res) => {
     });
 });
 
-// B. PROSES SIMPAN PERUBAHAN PRODUK (POST)
 app.post('/admin/edit/:id', (req, res) => {
     if (!req.session.isAdmin) return res.sendStatus(403);
     const id = req.params.id;
@@ -225,6 +164,37 @@ app.post('/admin/edit/:id', (req, res) => {
     });
 });
 
+// 9. REKAM PESANAN WHATSAPP
+app.post('/order/record', (req, res) => {
+    const { name, price } = req.body;
+    const sql = 'INSERT INTO orders (product_name, price) VALUES (?, ?)';
+    db.query(sql, [name, parseInt(price) || 0], (err, result) => {
+        if (err) return res.status(500).json({ success: false });
+        res.json({ success: true });
+    });
+});
+
+// 10. HAPUS PRODUK
+app.get('/admin/delete/:id', (req, res) => {
+    if (!req.session.isAdmin) return res.sendStatus(403);
+    const id = req.params.id;
+
+    db.query('SELECT image FROM products WHERE id = ?', [id], (err, results) => {
+        if (err) throw err;
+        if (results.length > 0) {
+            const fileGambar = results[0].image;
+            if(fileGambar !== '/d.jpg') {
+                const fullPath = path.join(__dirname, 'public', fileGambar);
+                if (fs.existsSync(fullPath)) fs.unlinkSync(fullPath);
+            }
+        }
+
+        db.query('DELETE FROM products WHERE id = ?', [id], (err, result) => {
+            if (err) throw err;
+            res.redirect('/admin');
+        });
+    });
+});
 
 app.get('/logout', (req, res) => {
     req.session.destroy();
@@ -235,18 +205,5 @@ const PORT = 4000;
 app.listen(PORT, () => {
     console.log(`Server Super Boilerplate berjalan di http://localhost:${PORT}`);
 });
+
 module.exports = app;
-
-
-
-// A. PROSES REKAM KLIK BELI (POST)
-app.post('/order/record', (req, res) => {
-    const { name, price } = req.body;
-    const sql = 'INSERT INTO orders (product_name, price) VALUES (?, ?)';
-    db.query(sql, [name, parseInt(price) || 0], (err, result) => {
-        if (err) return res.status(500).json({ success: false });
-        res.json({ success: true });
-    });
-});
-
-// B. TAMPILKAN RIWAYAT PESANAN DI HALAMAN ADMIN (KITA UPDATE RUTE /ADMIN YANG SUDAH ADA)
