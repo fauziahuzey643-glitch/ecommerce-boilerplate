@@ -7,26 +7,29 @@ const mysql = require('mysql2');
 
 const app = express();
 
-// 1. KONEKSI DATABASE MYSQL CLOUD (AIVEN)
-const db = mysql.createConnection({
+// 1. KONEKSI DATABASE MYSQL CLOUD MENGGUNAKAN POOL (STANDAR SERVERLESS)
+const db = mysql.createPool({
     host: '://aivencloud.com',
     port: 20587,
     user: 'avnadmin',
-    password: 'MASUKKAN_PASSWORD_ASLI_AIVEN_ANDA_DI_SINI',
+    password: 'MASUKKAN_PASSWORD_ASLI_AIVEN_ANDA_DI_SINI', // <--- Pastikan diisi dengan password asli Aiven Anda
     database: 'defaultdb',
     ssl: {
         rejectUnauthorized: false
-    }
+    },
+    waitForConnections: true,
+    connectionLimit: 10,
+    queueLimit: 0
 });
 
-db.connect((err) => {
+// Pemicu otomatis untuk mengecek koneksi dan membuat tabel saat serverless aktif
+db.getConnection((err, connection) => {
     if (err) {
         console.error('Koneksi MySQL Cloud Gagal: ' + err.stack);
         return;
     }
     console.log('Koneksi Database MySQL Cloud Berhasil!');
 
-    // OTOMATIS MEMBUAT TABEL PRODUCTS JIKA BELUM ADA DI CLOUD
     const sqlProducts = `
         CREATE TABLE IF NOT EXISTS products (
             id INT AUTO_INCREMENT PRIMARY KEY,
@@ -35,10 +38,24 @@ db.connect((err) => {
             image VARCHAR(255) NOT NULL
         );
     `;
-    db.query(sqlProducts, (err) => {
+    connection.query(sqlProducts, (err) => {
         if (err) console.error('Gagal membuat tabel products:', err);
-        else console.log('Tabel products cloud siap digunakan!');
     });
+
+    const sqlOrders = `
+        CREATE TABLE IF NOT EXISTS orders (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            product_name VARCHAR(255) NOT NULL,
+            price INT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+    `;
+    connection.query(sqlOrders, (err) => {
+        if (err) console.error('Gagal membuat tabel orders:', err);
+        connection.release(); // Melepas kembali koneksi ke pool setelah selesai
+    });
+});
+
 
     // OTOMATIS MEMBUAT TABEL ORDERS JIKA BELUM ADA DI CLOUD
     const sqlOrders = `
