@@ -92,6 +92,8 @@ app.use(express.urlencoded({ extended: true }));
 
 const configPath = path.join(__dirname, 'config.json');
 function getClientConfig() {
+    // Menggunakan path.join dan process.cwd() agar Netlify tepat menemukan lokasinya
+    const configPath = path.join(process.cwd(), 'src', 'config.json');
     return JSON.parse(fs.readFileSync(configPath, 'utf8'));
 }
 
@@ -216,7 +218,6 @@ const PORT = 4000;
 app.listen(PORT, () => {
     console.log(`Server Super Boilerplate berjalan di http://localhost:${PORT}`);
 });
-
 module.exports = app;
 
 
