@@ -9,10 +9,10 @@ const app = express();
 
 // 1. KONEKSI DATABASE MYSQL CLOUD MENGGUNAKAN POOL (STANDAR SERVERLESS)
 const db = mysql.createPool({
-    host: '://aivencloud.com',
+    host: '://aivencloud.com', // <--- PASTIKAN BERSIH SEPERTI INI TANPA :// DI DEPANNYA
     port: 20587,
     user: 'avnadmin',
-    password: 'MASUKKAN_PASSWORD_ASLI_AIVEN_ANDA', // <--- Ganti dengan password Aiven Anda
+    password: 'MASUKKAN_PASSWORD_ASLI_AIVEN_ANDA', 
     database: 'defaultdb',
     ssl: {
         rejectUnauthorized: false
