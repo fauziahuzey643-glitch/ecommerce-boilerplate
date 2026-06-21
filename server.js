@@ -217,6 +217,9 @@ app.listen(PORT, () => {
     console.log(`Server Super Boilerplate berjalan di http://localhost:${PORT}`);
 });
 
+module.exports = app;
+
+
 
 // A. PROSES REKAM KLIK BELI (POST)
 app.post('/order/record', (req, res) => {
